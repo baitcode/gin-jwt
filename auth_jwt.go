@@ -553,14 +553,19 @@ func (mw *GinJWTMiddleware) LogoutHandler(c *gin.Context) {
 }
 
 func (mw *GinJWTMiddleware) signedString(token *jwt.Token) (string, error) {
-	var tokenString string
-	var err error
-	if mw.usingPublicKeyAlgo() {
-		tokenString, err = token.SignedString(mw.privKey)
-	} else {
-		tokenString, err = token.SignedString(mw.Key)
+	if mw.KeyFunc != nil {
+		key, err := mw.KeyFunc(token)
+		if err != nil {
+			return "", err
+		}
+		return token.SignedString(key)
 	}
-	return tokenString, err
+
+	if mw.usingPublicKeyAlgo() {
+		return token.SignedString(mw.privKey)
+	}
+
+	return token.SignedString(mw.Key)
 }
 
 // RefreshHandler can be used to refresh a token. The token still needs to be valid on refresh.
